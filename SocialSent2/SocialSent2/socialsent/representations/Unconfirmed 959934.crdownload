@@ -1,0 +1,57 @@
+import os
+import struct
+from scipy.sparse import coo_matrix
+import numpy as np
+
+def export_mat_from_dict(counts, filename):
+    with open(filename, 'wb') as fout:
+        for (i, c), v in counts.items():
+            word1 = i
+            word2 = c
+            val = v
+            fout.write(struct.pack('iid', word1, word2, val))
+
+def export_mat_eff(row_d, col_d, data_d, out_file):
+    with open(out_file, 'wb') as fout:
+        for i in range(len(row_d)):
+            word1 = row_d[i]
+            word2 = col_d[i]
+            val = data_d[i]
+            fout.write(struct.pack('iid', word1, word2, val))
+
+            
+import os
+import numpy as np
+from scipy.sparse import coo_matrix
+
+def retrieve_mat_as_coo(matfn, min_size=None):
+    """
+    matfn = file name of matrix
+    min_size = pad with zeros to this size
+    """
+    with open(matfn, 'rb') as fin:
+        word1 = np.fromfile(fin, dtype=np.int32, count=1)[0]
+        word2 = np.fromfile(fin, dtype=np.int32, count=1)[0]
+        val = np.fromfile(fin, dtype=np.float64, count=1)[0]
+        i = 0
+        rows = [word1]
+        cols = [word2]
+        data = [val]
+        while True:
+            word1 = np.fromfile(fin, dtype=np.int32, count=1)
+            if not word1.size:
+                break
+            word2 = np.fromfile(fin, dtype=np.int32, count=1)[0]
+            val = np.fromfile(fin, dtype=np.float64, count=1)[0]
+            rows.append(word1[0])
+            cols.append(word2)
+            data.append(val)
+            i += 1
+
+    if min_size is not None:
+        rows.append(min_size)
+        cols.append(min_size)
+        data.append(0.0)
+
+    return coo_matrix((data, (rows, cols)), dtype=np.float64)
+
